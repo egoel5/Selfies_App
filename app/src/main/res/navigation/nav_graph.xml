@@ -49,5 +49,6 @@
     <fragment
         android:id="@+id/takePhotoFragment"
         android:name="com.example.c323_project9.TakePhotoFragment"
-        android:label="TakePhotoFragment" />
+        android:label="TakePhotoFragment"
+        tools:layout="@layout/fragment_take_photo"/>
 </navigation>

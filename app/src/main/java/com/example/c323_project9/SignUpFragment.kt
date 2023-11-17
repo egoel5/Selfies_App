@@ -51,6 +51,10 @@ class SignUpFragment : Fragment() {
                 Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
             }
         })
+
+        binding.nextBtn.setOnClickListener {
+            viewModel.signUp(binding.emailEt.text.toString(), binding.passEt.text.toString())
+        }
         return view
     }
 }

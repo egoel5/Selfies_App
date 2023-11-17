@@ -6,5 +6,6 @@ data class Selfie(
     @get:Exclude
     var selfieId: String = "",
     var selfieTitle: String = "",
-    var selfieUrl: String = ""
+    var selfieUrl: String = "",
+    var uId: String = ""
 )

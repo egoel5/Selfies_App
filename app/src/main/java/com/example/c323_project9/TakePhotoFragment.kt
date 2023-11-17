@@ -3,6 +3,7 @@ package com.example.c323_project9
 import android.Manifest
 import android.content.ContentValues
 import android.content.pm.PackageManager
+import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -18,12 +19,9 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.Recorder
-import androidx.camera.video.Recording
-import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
-import androidx.core.net.toFile
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import com.example.c323_project9.databinding.FragmentTakePhotoBinding
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
@@ -32,6 +30,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+
 
 /**
  * A simple [Fragment] subclass.
@@ -76,7 +75,9 @@ class TakePhotoFragment : Fragment() {
         // Inflate the layout for this fragment
         _binding = FragmentTakePhotoBinding.inflate(inflater, container, false)
         val view = binding.root
-
+        val viewModel : SelfieViewModel by activityViewModels()
+        binding.viewModel = viewModel
+        binding.lifecycleOwner = viewLifecycleOwner
 
         // Request camera permissions
         if (allPermissionsGranted()) {
@@ -86,7 +87,9 @@ class TakePhotoFragment : Fragment() {
         }
 
         // Set up the listeners for take photo and video capture buttons
-        binding.imageCaptureButton.setOnClickListener { takePhoto() }
+        binding.imageCaptureButton.setOnClickListener {
+            takePhoto()
+            }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
         return view
@@ -131,19 +134,34 @@ class TakePhotoFragment : Fragment() {
                 override fun
                         onImageSaved(output: ImageCapture.OutputFileResults) {
                     val msg = "Photo capture succeeded: ${output.savedUri}"
-                    var file = Uri.fromFile(output.savedUri!!.toFile())
-                    val selfiesRef = selfiesCollection.child("images/${file.lastPathSegment}")
-                    var uploadTask = selfiesRef.putFile(file)
+                    var file = Uri.fromFile(File(getRealPathFromURI(output.savedUri!!)))
+                    val riversRef = selfiesCollection.child("images/${file.lastPathSegment}")
+                    var uploadTask = riversRef.putFile(file)
+
                     // Register observers to listen for when the download is done or if it fails
                     uploadTask.addOnFailureListener {
-                        Log.v(TAG, "Upload Error")
+                        // Handle unsuccessful uploads
                     }.addOnSuccessListener { taskSnapshot ->
                         // taskSnapshot.metadata contains file metadata such as size, content-type, etc.
                         // ...
-                        Log.v(TAG, "Upload Success ${taskSnapshot.metadata.toString()}")
                     }
                     Toast.makeText(activity?.baseContext, msg, Toast.LENGTH_SHORT).show()
                     Log.d(TAG, msg)
+                }
+
+                private fun getRealPathFromURI(contentURI: Uri): String? {
+                    val result: String?
+                    val cursor: Cursor? =
+                        context!!.getContentResolver().query(contentURI, null, null, null, null)
+                    if (cursor == null) { // Source is Dropbox or other similar local file path
+                        result = contentURI.path
+                    } else {
+                        cursor.moveToFirst()
+                        val idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
+                        result = cursor.getString(idx)
+                        cursor.close()
+                    }
+                    return result
                 }
             }
         )

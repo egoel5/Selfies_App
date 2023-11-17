@@ -1,26 +1,17 @@
 package com.example.c323_project9
 
-import android.hardware.SensorManager
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.content.Context
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat.getSystemService
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
+import androidx.navigation.findNavController
+import com.example.c323_project9.databinding.FragmentMainScreenBinding
 import java.util.*
-import kotlin.math.sqrt
 
 // TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-//if request.time < timestamp.date(2023, 12, 16);
 
 /**
  * A simple [Fragment] subclass.
@@ -28,12 +19,49 @@ private const val ARG_PARAM2 = "param2"
  * create an instance of this fragment.
  */
 class MainScreenFragment : Fragment() {
+    private var _binding: FragmentMainScreenBinding? = null
+    private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_main_screen, container, false)
+        _binding = FragmentMainScreenBinding.inflate(inflater, container, false)
+        val view = binding.root
+        val viewModel : SelfieViewModel by activityViewModels()
+        binding.viewModel = viewModel
+        binding.lifecycleOwner = viewLifecycleOwner
+
+        fun selfieClicked (selfie : Selfie) {
+            viewModel.onSelfieClicked(selfie)
+        }
+
+        // initialize and set adapter
+        val adapter = SelfieItemAdapter(::selfieClicked)
+        binding.notesList.adapter = adapter
+
+        // when a notes item is observed, submitList of notes to the adapter
+        viewModel.selfies.observe(viewLifecycleOwner, Observer {
+            it?.let {
+                adapter.submitList(it)
+            }
+        })
+
+        binding.btnTakePhoto.setOnClickListener {
+            view.findNavController()
+                .navigate(R.id.action_mainFragment_to_takePhotoFragment)
+            viewModel.onSelfieNavigated()
+        }
+
+        // navigate to EditNote Fragment
+        viewModel.navigateToSelfie.observe(viewLifecycleOwner, Observer { selfieId ->
+            selfieId?.let {
+                view.findNavController()
+                    .navigate(R.id.action_mainFragment_to_selfieFragment)
+                viewModel.onSelfieNavigated()
+            }
+        })
+        return view
     }
 }

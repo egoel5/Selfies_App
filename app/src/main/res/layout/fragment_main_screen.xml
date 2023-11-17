@@ -27,5 +27,12 @@
             android:layout_margin="10dp">
         </androidx.recyclerview.widget.RecyclerView>
 
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/btnTakePhoto"
+            android:text="Take Photo"
+            ></Button>
+
     </LinearLayout>
 </layout>

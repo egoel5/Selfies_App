@@ -14,11 +14,15 @@ import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.ktx.storage
 
 class SelfieViewModel : ViewModel() {
+
     // initialize Firebase auth and all associated variables such as navigation gets
     private var auth: FirebaseAuth
-    var user: User = User()
+    var user: FirebaseUser?
     var verifyPassword = ""
     var selfieId : String = ""
+    private val _selfies : MutableLiveData<MutableList<Selfie>> = MutableLiveData()
+    val selfies : LiveData<List<Selfie>>
+        get() = _selfies as LiveData<List<Selfie>>
 
     private val _navigateToSelfie = MutableLiveData<String?>()
     val navigateToSelfie: LiveData<String?>
@@ -45,6 +49,8 @@ class SelfieViewModel : ViewModel() {
     // init block to setup firebase Authentication and call the function that initializes database
     init {
         auth = Firebase.auth
+        user = getCurrentUser()
+        initializeTheDatabaseReference()
     }
 
     /**
@@ -56,7 +62,6 @@ class SelfieViewModel : ViewModel() {
     fun initializeTheDatabaseReference() {
         val storage = Firebase.storage
         selfiesCollection = storage.reference
-        var imagesRef: StorageReference? = selfiesCollection.child("images")
     }
 
 
@@ -104,12 +109,12 @@ class SelfieViewModel : ViewModel() {
      * else
      * sign in with email/pw using in-built Firebase function
      */
-    fun signIn() {
-        if (user.email.isEmpty() || user.password.isEmpty()) {
+    fun signIn(email : String, password: String) {
+        if (email.isEmpty() || password.isEmpty()) {
             _errorHappened.value = "Email and password cannot be empty."
             return
         }
-        auth.signInWithEmailAndPassword(user.email, user.password).addOnCompleteListener {
+        auth.signInWithEmailAndPassword(email, password).addOnCompleteListener {
             if (it.isSuccessful) {
                 initializeTheDatabaseReference()
                 _navigateToList.value = true
@@ -126,16 +131,16 @@ class SelfieViewModel : ViewModel() {
      * else
      * create user with email/pw using in-built Firebase function
      */
-    fun signUp() {
-        if (user.email.isEmpty() || user.password.isEmpty()) {
+    fun signUp(email : String, password: String) {
+        if (email.isEmpty() || password.isEmpty()) {
             _errorHappened.value = "Email and password cannot be empty."
             return
         }
-        if (user.password != verifyPassword) {
+        if (password != verifyPassword) {
             _errorHappened.value = "Password and verify do not match."
             return
         }
-        auth.createUserWithEmailAndPassword(user.email, user.password).addOnCompleteListener {
+        auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener {
             if (it.isSuccessful) {
                 _navigateToSignIn.value = true
             } else {

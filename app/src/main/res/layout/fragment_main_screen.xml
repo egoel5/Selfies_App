@@ -22,9 +22,8 @@
             android:id="@+id/selfiesList"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:layoutManager="androidx.recyclerview.widget.StaggeredGridLayoutManager"
-            android:layout_weight="2"
-            android:layout_margin="10dp">
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            android:layout_weight="2">
         </androidx.recyclerview.widget.RecyclerView>
 
         <Button

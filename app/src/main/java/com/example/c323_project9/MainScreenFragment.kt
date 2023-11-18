@@ -44,25 +44,12 @@ class MainScreenFragment : Fragment() {
         binding.viewModel = viewModel
         binding.lifecycleOwner = viewLifecycleOwner
 
-        binding.selfiesList.apply {
-            layoutManager = StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL)
-        }
-
-        firebaseRef = FirebaseDatabase.getInstance().getReference("images")
-        selfiesList = arrayListOf()
-
-        firebaseRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                for (selfieSnap in snapshot.children){
-                    val selfies = selfieSnap.getValue(Selfie::class.java)
-                    selfiesList.add(selfies!!)
-                }
-                val adapter = SelfieItemAdapter(this@MainScreenFragment.requireContext(), selfiesList)
-                binding.selfiesList.adapter = adapter
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-
+        val adapter = SelfieItemAdapter(this.requireContext())
+        binding.selfiesList.adapter = adapter
+        viewModel.selfies.observe(viewLifecycleOwner, Observer {
+            it?.let {
+                adapter.submitList(it)
+                adapter.notifyDataSetChanged()
             }
         })
 

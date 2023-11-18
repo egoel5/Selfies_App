@@ -134,6 +134,7 @@ class TakePhotoFragment : Fragment() {
                     override fun
                             onImageSaved(output: ImageCapture.OutputFileResults) {
                         val selfieId = selfiesCollectionDb.push().key!!
+                        Log.v(TAG, selfieId)
                         var selfie : Selfie
                         val msg = "Photo capture succeeded: ${output.savedUri}"
                         var file = Uri.fromFile(File(getRealPathFromURI(output.savedUri!!)))
@@ -149,6 +150,7 @@ class TakePhotoFragment : Fragment() {
                                 .addOnSuccessListener { url ->
                                     val imgUrl = url.toString()
                                     selfie = Selfie(selfieId, imgUrl)
+                                    Log.v(TAG, selfie.toString())
                                     selfiesCollectionDb.child(selfieId).setValue(selfie)
                                         .addOnCompleteListener{
                                         }

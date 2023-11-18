@@ -76,7 +76,7 @@ class SelfieViewModel : ViewModel() {
         selfiesCollection = storage.reference
         val database = Firebase.database
         selfiesCollectionDb = database
-            .getReference("images")
+            .reference
 
         selfiesCollectionDb.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {

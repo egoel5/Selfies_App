@@ -16,7 +16,7 @@
         app:cardCornerRadius="5dp"
         android:layout_margin="5dp">
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical">
             <ImageView
@@ -24,7 +24,6 @@
                 android:layout_height="wrap_content"
                 android:id="@+id/img_selfie"
                 android:contentDescription="Selfie"
-                android:padding="10dp"
                 tools:srcCompat="@tools:sample/avatars"></ImageView>
         </LinearLayout>
     </androidx.cardview.widget.CardView>

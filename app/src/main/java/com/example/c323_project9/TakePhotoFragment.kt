@@ -25,6 +25,9 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import androidx.navigation.findNavController
 import com.example.c323_project9.databinding.FragmentTakePhotoBinding
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import java.io.File
@@ -47,6 +50,7 @@ class TakePhotoFragment : Fragment() {
     private var imageCapture: ImageCapture? = null
 
     private lateinit var cameraExecutor: ExecutorService
+    private lateinit var firebaseRef : DatabaseReference
 
     private val activityResultLauncher =
         registerForActivityResult(
@@ -80,7 +84,6 @@ class TakePhotoFragment : Fragment() {
         val viewModel : SelfieViewModel by activityViewModels()
         binding.viewModel = viewModel
         binding.lifecycleOwner = viewLifecycleOwner
-        var imageTaken = false
 
         // Request camera permissions
         if (allPermissionsGranted()) {
@@ -92,7 +95,9 @@ class TakePhotoFragment : Fragment() {
         // Set up the listeners for take photo and video capture buttons
         binding.imageCaptureButton.setOnClickListener {
             val storage = Firebase.storage
+            val database = Firebase.database
             var selfiesCollection = storage.reference
+            var selfiesCollectionDb = database.reference
             // Get a stable reference of the modifiable image capture use case
             val imageCapture = imageCapture
 
@@ -128,17 +133,28 @@ class TakePhotoFragment : Fragment() {
 
                     override fun
                             onImageSaved(output: ImageCapture.OutputFileResults) {
+                        val selfieId = selfiesCollectionDb.push().key!!
+                        var selfie : Selfie
                         val msg = "Photo capture succeeded: ${output.savedUri}"
                         var file = Uri.fromFile(File(getRealPathFromURI(output.savedUri!!)))
-                        val riversRef = selfiesCollection.child("images/${file.lastPathSegment}")
-                        var uploadTask = riversRef.putFile(file)
-
+                        val selfiesRef = selfiesCollection.child("images/${file.lastPathSegment}")
+                        var uploadTask = selfiesRef.putFile(file)
                         // Register observers to listen for when the download is done or if it fails
                         uploadTask.addOnFailureListener {
                             // Handle unsuccessful uploads
                         }.addOnSuccessListener { taskSnapshot ->
                             // taskSnapshot.metadata contains file metadata such as size, content-type, etc.
                             // ...
+                            taskSnapshot.metadata!!.reference!!.downloadUrl
+                                .addOnSuccessListener { url ->
+                                    val imgUrl = url.toString()
+                                    selfie = Selfie(selfieId, imgUrl)
+                                    selfiesCollectionDb.child(selfieId).setValue(selfie)
+                                        .addOnCompleteListener{
+                                        }
+                                        .addOnFailureListener{
+                                        }
+                                }
                         }
                         Toast.makeText(activity?.baseContext, msg, Toast.LENGTH_SHORT).show()
                         Log.d(TAG, msg)

@@ -8,6 +8,12 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.getValue
+import com.google.firebase.database.ktx.database
 import kotlinx.coroutines.launch
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.StorageReference
@@ -20,6 +26,7 @@ class SelfieViewModel : ViewModel() {
     var user: FirebaseUser?
     var verifyPassword = ""
     var selfieId : String = ""
+    var selfie = MutableLiveData<Selfie>()
     private val _selfies : MutableLiveData<MutableList<Selfie>> = MutableLiveData()
     val selfies : LiveData<List<Selfie>>
         get() = _selfies as LiveData<List<Selfie>>
@@ -45,11 +52,16 @@ class SelfieViewModel : ViewModel() {
         get() = _navigateToSignIn
 
     private lateinit var selfiesCollection: StorageReference
+    private lateinit var selfiesCollectionDb: DatabaseReference
 
     // init block to setup firebase Authentication and call the function that initializes database
     init {
         auth = Firebase.auth
         user = getCurrentUser()
+        if (selfieId.trim() == "") {
+            selfie.value = Selfie()
+        }
+        _selfies.value = mutableListOf<Selfie>()
         initializeTheDatabaseReference()
     }
 
@@ -62,6 +74,27 @@ class SelfieViewModel : ViewModel() {
     fun initializeTheDatabaseReference() {
         val storage = Firebase.storage
         selfiesCollection = storage.reference
+        val database = Firebase.database
+        selfiesCollectionDb = database
+            .getReference("images")
+
+        selfiesCollectionDb.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                var selfiesList : ArrayList<Selfie> = ArrayList()
+                for (selfieSnapshot in dataSnapshot.children) {
+                    // TODO: handle the post
+                    var selfie = selfieSnapshot.getValue<Selfie>()
+                    selfie?.selfieId = selfieSnapshot.key!!
+                    selfiesList.add(selfie!!)
+                }
+                _selfies.value = selfiesList
+            }
+
+            override fun onCancelled(databaseError: DatabaseError) {
+                Log.v("FAIL", "This Post has Failed.")
+            }
+        })
+
     }
 
 

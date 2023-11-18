@@ -1,5 +1,6 @@
 package com.example.c323_project9
 
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -30,8 +31,8 @@ class MainScreenFragment : Fragment() {
     private var _binding: FragmentMainScreenBinding? = null
     private val binding get() = _binding!!
 
-    lateinit var selfiesList: ArrayList<Selfie>
-    lateinit var firebaseRef : DatabaseReference
+    private lateinit var sensorManager: SensorManager
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -42,6 +43,7 @@ class MainScreenFragment : Fragment() {
         val view = binding.root
         val viewModel : SelfieViewModel by activityViewModels()
         binding.viewModel = viewModel
+        viewModel.initializeSensor(AccelerometerSensor(this.requireContext()))
         binding.lifecycleOwner = viewLifecycleOwner
 
         val adapter = SelfieItemAdapter(this.requireContext())
@@ -53,13 +55,14 @@ class MainScreenFragment : Fragment() {
             }
         })
 
-
-
-        binding.btnTakePhoto.setOnClickListener {
-            view.findNavController()
-                .navigate(R.id.action_mainFragment_to_takePhotoFragment)
-            viewModel.onSelfieNavigated()
-        }
+        viewModel.isShaking.observe(viewLifecycleOwner, Observer {
+            it?.let {
+                if(it) {
+                    view.findNavController()
+                        .navigate(R.id.action_mainFragment_to_takePhotoFragment)
+                }
+            }
+        })
 
         // navigate to EditNote Fragment
         viewModel.navigateToSelfie.observe(viewLifecycleOwner, Observer { selfieId ->

@@ -1,5 +1,6 @@
 package com.example.c323_project9
 
+import android.hardware.SensorManager
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -20,11 +21,18 @@ import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.ktx.storage
 
 class SelfieViewModel : ViewModel() {
-
+    private val TAG = "SelfieViewModel"
     // initialize Firebase auth and all associated variables such as navigation gets
     private var auth: FirebaseAuth
     var user: FirebaseUser?
     var verifyPassword = ""
+    lateinit var accelerometerSensor: MeasurableSensor
+    var accelerometerData = floatArrayOf(
+        SensorManager.GRAVITY_EARTH, SensorManager.GRAVITY_EARTH, 0.0F
+    )
+    private var _isShaking: MutableLiveData<Boolean> = MutableLiveData(false)
+    val isShaking: LiveData<Boolean>
+        get() = _isShaking
     var selfieId : String = ""
     var selfie = MutableLiveData<Selfie>()
     private val _selfies : MutableLiveData<MutableList<Selfie>> = MutableLiveData()
@@ -185,5 +193,25 @@ class SelfieViewModel : ViewModel() {
     // get current user from Firebase
     fun getCurrentUser(): FirebaseUser? {
         return auth.currentUser
+    }
+
+    fun initializeSensor(sAccelerometer: MeasurableSensor) {
+
+        //initialize accelerometer sensor
+        accelerometerSensor = sAccelerometer
+        accelerometerSensor.startListening()
+        accelerometerSensor.setOnSensorValuesChangedListener { a ->
+            val x: Float = a[0]
+            val y: Float = a[1]
+            val z: Float = a[2]
+            accelerometerData[1] = accelerometerData[0]
+            accelerometerData[0] = Math.sqrt((x * x).toDouble() + y * y + z * z).toFloat()
+            val delta: Float = accelerometerData[0] - accelerometerData[1]
+            accelerometerData[2] = accelerometerData[2] * 0.9f + delta
+            if (accelerometerData[2] > 1) {
+                Log.i(TAG, "Do not shake the phone!")
+                _isShaking.value = true
+            }
+        }
     }
 }

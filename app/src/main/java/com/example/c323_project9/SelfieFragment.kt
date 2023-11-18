@@ -32,7 +32,7 @@ class SelfieFragment : Fragment() {
         val storageReference = Firebase.storage.reference
         Glide.with(this)
             .load(storageReference)
-            .into(binding.imgSelfie)
+            .into(binding.imgSelfieFull)
         return view
     }
 }

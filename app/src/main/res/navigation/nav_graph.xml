@@ -45,7 +45,9 @@
         android:id="@+id/selfieFragment"
         android:name="com.example.c323_project9.SelfieFragment"
         android:label="fragment_selfie"
-        tools:layout="@layout/fragment_selfie" />
+        tools:layout="@layout/fragment_selfie" >
+    </fragment>
+
     <fragment
         android:id="@+id/takePhotoFragment"
         android:name="com.example.c323_project9.TakePhotoFragment"

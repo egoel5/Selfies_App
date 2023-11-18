@@ -22,6 +22,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
+import androidx.navigation.findNavController
 import com.example.c323_project9.databinding.FragmentTakePhotoBinding
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
@@ -78,6 +80,7 @@ class TakePhotoFragment : Fragment() {
         val viewModel : SelfieViewModel by activityViewModels()
         binding.viewModel = viewModel
         binding.lifecycleOwner = viewLifecycleOwner
+        var imageTaken = false
 
         // Request camera permissions
         if (allPermissionsGranted()) {
@@ -88,84 +91,81 @@ class TakePhotoFragment : Fragment() {
 
         // Set up the listeners for take photo and video capture buttons
         binding.imageCaptureButton.setOnClickListener {
-            takePhoto()
+            val storage = Firebase.storage
+            var selfiesCollection = storage.reference
+            // Get a stable reference of the modifiable image capture use case
+            val imageCapture = imageCapture
+
+            // Create time stamped name and MediaStore entry.
+            val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
+                .format(System.currentTimeMillis())
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CameraX-Image")
+                }
             }
 
+            // Create output options object which contains file + metadata
+            val outputOptions = ImageCapture.OutputFileOptions
+                .Builder(
+                    this.requireContext().contentResolver,
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    contentValues
+                )
+                .build()
+
+            // Set up image capture listener, which is triggered after photo has
+            // been taken
+            imageCapture!!.takePicture(
+                outputOptions,
+                ContextCompat.getMainExecutor(this.requireContext()),
+                object : ImageCapture.OnImageSavedCallback {
+                    override fun onError(exc: ImageCaptureException) {
+                        Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
+                    }
+
+                    override fun
+                            onImageSaved(output: ImageCapture.OutputFileResults) {
+                        val msg = "Photo capture succeeded: ${output.savedUri}"
+                        var file = Uri.fromFile(File(getRealPathFromURI(output.savedUri!!)))
+                        val riversRef = selfiesCollection.child("images/${file.lastPathSegment}")
+                        var uploadTask = riversRef.putFile(file)
+
+                        // Register observers to listen for when the download is done or if it fails
+                        uploadTask.addOnFailureListener {
+                            // Handle unsuccessful uploads
+                        }.addOnSuccessListener { taskSnapshot ->
+                            // taskSnapshot.metadata contains file metadata such as size, content-type, etc.
+                            // ...
+                        }
+                        Toast.makeText(activity?.baseContext, msg, Toast.LENGTH_SHORT).show()
+                        Log.d(TAG, msg)
+                        view.findNavController()
+                            .navigate(R.id.action_takePhotoFragment_to_mainFragment)
+                        viewModel.onNavigatedToList()
+                    }
+
+                    private fun getRealPathFromURI(contentURI: Uri): String? {
+                        val result: String?
+                        val cursor: Cursor? =
+                            context!!.getContentResolver().query(contentURI, null, null, null, null)
+                        if (cursor == null) {
+                            result = contentURI.path
+                        } else {
+                            cursor.moveToFirst()
+                            val idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
+                            result = cursor.getString(idx)
+                            cursor.close()
+                        }
+                        return result
+                    }
+                }
+            )
+        }
         cameraExecutor = Executors.newSingleThreadExecutor()
         return view
-    }
-
-    private fun takePhoto() {
-        val storage = Firebase.storage
-        var selfiesCollection = storage.reference
-        // Get a stable reference of the modifiable image capture use case
-        val imageCapture = imageCapture ?: return
-
-        // Create time stamped name and MediaStore entry.
-        val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
-            .format(System.currentTimeMillis())
-        val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CameraX-Image")
-            }
-        }
-
-        // Create output options object which contains file + metadata
-        val outputOptions = ImageCapture.OutputFileOptions
-            .Builder(
-                this.requireContext().contentResolver,
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                contentValues
-            )
-            .build()
-
-        // Set up image capture listener, which is triggered after photo has
-        // been taken
-        imageCapture.takePicture(
-            outputOptions,
-            ContextCompat.getMainExecutor(this.requireContext()),
-            object : ImageCapture.OnImageSavedCallback {
-                override fun onError(exc: ImageCaptureException) {
-                    Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
-                }
-
-                override fun
-                        onImageSaved(output: ImageCapture.OutputFileResults) {
-                    val msg = "Photo capture succeeded: ${output.savedUri}"
-                    var file = Uri.fromFile(File(getRealPathFromURI(output.savedUri!!)))
-                    val riversRef = selfiesCollection.child("images/${file.lastPathSegment}")
-                    var uploadTask = riversRef.putFile(file)
-
-                    // Register observers to listen for when the download is done or if it fails
-                    uploadTask.addOnFailureListener {
-                        // Handle unsuccessful uploads
-                    }.addOnSuccessListener { taskSnapshot ->
-                        // taskSnapshot.metadata contains file metadata such as size, content-type, etc.
-                        // ...
-                    }
-                    Toast.makeText(activity?.baseContext, msg, Toast.LENGTH_SHORT).show()
-                    Log.d(TAG, msg)
-                }
-
-                private fun getRealPathFromURI(contentURI: Uri): String? {
-                    val result: String?
-                    val cursor: Cursor? =
-                        context!!.getContentResolver().query(contentURI, null, null, null, null)
-                    if (cursor == null) { // Source is Dropbox or other similar local file path
-                        result = contentURI.path
-                    } else {
-                        cursor.moveToFirst()
-                        val idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
-                        result = cursor.getString(idx)
-                        cursor.close()
-                    }
-                    return result
-                }
-            }
-        )
-
     }
 
     private fun startCamera() {

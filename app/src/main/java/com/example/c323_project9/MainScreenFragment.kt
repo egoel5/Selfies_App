@@ -8,6 +8,8 @@ import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import androidx.navigation.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.example.c323_project9.databinding.FragmentMainScreenBinding
 import java.util.*
 
@@ -33,13 +35,18 @@ class MainScreenFragment : Fragment() {
         binding.viewModel = viewModel
         binding.lifecycleOwner = viewLifecycleOwner
 
+        val selfieList = binding.selfiesList
+        val staggeredGridLayoutManager =
+            StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL)
+        selfieList.layoutManager = staggeredGridLayoutManager
+
         fun selfieClicked (selfie : Selfie) {
             viewModel.onSelfieClicked(selfie)
         }
 
         // initialize and set adapter
-        val adapter = SelfieItemAdapter(::selfieClicked)
-        binding.notesList.adapter = adapter
+        val adapter = SelfieItemAdapter(this.requireContext(), ::selfieClicked)
+        binding.selfiesList.adapter = adapter
 
         // when a notes item is observed, submitList of notes to the adapter
         viewModel.selfies.observe(viewLifecycleOwner, Observer {

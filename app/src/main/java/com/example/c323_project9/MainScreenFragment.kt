@@ -55,14 +55,13 @@ class MainScreenFragment : Fragment() {
             }
         })
 
-        viewModel.isShaking.observe(viewLifecycleOwner, Observer {
-            it?.let {
-                if(it) {
+        viewModel.isShaking.observe(viewLifecycleOwner, Observer { navigate ->
+            if (navigate) {
                     view.findNavController()
                         .navigate(R.id.action_mainFragment_to_takePhotoFragment)
+                    viewModel.onNavigatedToTakePhoto()
                 }
-            }
-        })
+            })
 
         // navigate to EditNote Fragment
         viewModel.navigateToSelfie.observe(viewLifecycleOwner, Observer { selfieId ->

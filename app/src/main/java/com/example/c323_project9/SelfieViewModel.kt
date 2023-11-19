@@ -30,7 +30,7 @@ class SelfieViewModel : ViewModel() {
     var accelerometerData = floatArrayOf(
         SensorManager.GRAVITY_EARTH, SensorManager.GRAVITY_EARTH, 0.0F
     )
-    private var _isShaking: MutableLiveData<Boolean> = MutableLiveData(false)
+    private val _isShaking = MutableLiveData<Boolean>(false)
     val isShaking: LiveData<Boolean>
         get() = _isShaking
     var selfieId : String = ""
@@ -143,6 +143,11 @@ class SelfieViewModel : ViewModel() {
         _navigateToSignIn.value = false
     }
 
+    // after user has navigates to sign in page, make _navigateToSignIn false
+    fun onNavigatedToTakePhoto() {
+        _isShaking.value = false
+    }
+
     /**
      * signIn()
      *
@@ -209,7 +214,6 @@ class SelfieViewModel : ViewModel() {
             val delta: Float = accelerometerData[0] - accelerometerData[1]
             accelerometerData[2] = accelerometerData[2] * 0.9f + delta
             if (accelerometerData[2] > 1) {
-                Log.i(TAG, "Do not shake the phone!")
                 _isShaking.value = true
             }
         }
